@@ -1,21 +1,22 @@
 require("dotenv").config();
 
+const app = require("./src/app");
+const db = require("./src/config/database");
+
 const PORT = process.env.PORT || 3000;
 
-const express = require("express");
-const cors = require("cors");
+const startServer = async () => {
+  try {
+    await db.query("SELECT 1");
 
-const app = express();
+    console.log("Conexión a MySQL correcta");
 
-app.use(cors());
-app.use(express.json());
+    app.listen(PORT, () => {
+      console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error("Error al conectar con MySQL:", error);
+  }
+};
 
-app.get("/", (req, res) => {
-  res.json({
-    message: "CVE Dashboard API funcionando",
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
-});
+startServer();
