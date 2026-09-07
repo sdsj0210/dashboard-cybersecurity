@@ -10,18 +10,144 @@ const getCves = async (filters = {}) => {
   }));
 };
 
-const syncCves = async () => {
-  const data = await nistService.getCves();
+const formatDate = (date) => {
+  return date.toISOString().slice(0, 10);
+};
 
-  const vulnerabilities = data.vulnerabilities || [];
+const addDays = (dateString, days) => {
+  const date = new Date(`${dateString}T00:00:00.000Z`);
 
-  for (const vulnerability of vulnerabilities) {
-    const normalizedCve = normalizeCve(vulnerability.cve);
+  date.setUTCDate(date.getUTCDate() + days);
 
-    await cveRepository.saveCve(normalizedCve);
+  return formatDate(date);
+};
+
+const normalizeDate = (date) => {
+  return new Date(date).toISOString().slice(0, 10);
+};
+
+const getMissingRanges = (from, to, syncRanges) => {
+  const relevantRanges = syncRanges
+    .map((range) => ({
+      start: normalizeDate(range.start_date),
+      end: normalizeDate(range.end_date),
+    }))
+    .filter((range) => {
+      return range.end >= from && range.start <= to;
+    })
+    .map((range) => ({
+      start: range.start < from ? from : range.start,
+      end: range.end > to ? to : range.end,
+    }))
+    .sort((a, b) => a.start.localeCompare(b.start));
+
+  if (relevantRanges.length === 0) {
+    return [
+      {
+        from,
+        to,
+      },
+    ];
   }
 
-  return vulnerabilities.length;
+  const mergedRanges = [];
+
+  for (const range of relevantRanges) {
+    const lastRange = mergedRanges[mergedRanges.length - 1];
+
+    if (!lastRange) {
+      mergedRanges.push(range);
+      continue;
+    }
+
+    const dayAfterLastRange = addDays(lastRange.end, 1);
+
+    if (range.start <= dayAfterLastRange) {
+      if (range.end > lastRange.end) {
+        lastRange.end = range.end;
+      }
+    } else {
+      mergedRanges.push(range);
+    }
+  }
+
+  const missingRanges = [];
+
+  let currentDate = from;
+
+  for (const range of mergedRanges) {
+    if (currentDate < range.start) {
+      missingRanges.push({
+        from: currentDate,
+        to: addDays(range.start, -1),
+      });
+    }
+
+    const dayAfterRange = addDays(range.end, 1);
+
+    if (dayAfterRange > currentDate) {
+      currentDate = dayAfterRange;
+    }
+  }
+
+  if (currentDate <= to) {
+    missingRanges.push({
+      from: currentDate,
+      to,
+    });
+  }
+
+  return missingRanges;
+};
+
+const syncCves = async (from, to) => {
+  const syncRanges = await cveRepository.getSyncRanges();
+
+  const missingRanges = getMissingRanges(from, to, syncRanges);
+
+  if (missingRanges.length === 0) {
+    return {
+      synchronized: 0,
+      totalResults: 0,
+      from,
+      to,
+      requestedNist: false,
+      synchronizedRanges: [],
+    };
+  }
+
+  let synchronized = 0;
+  let totalResults = 0;
+
+  const synchronizedRanges = [];
+
+  for (const range of missingRanges) {
+    const data = await nistService.getCves(range.from, range.to);
+
+    const vulnerabilities = data.vulnerabilities || [];
+
+    for (const vulnerability of vulnerabilities) {
+      const normalizedCve = normalizeCve(vulnerability.cve);
+
+      await cveRepository.saveCve(normalizedCve);
+    }
+
+    await cveRepository.saveSyncRange(range.from, range.to);
+
+    synchronized += vulnerabilities.length;
+    totalResults += data.totalResults || 0;
+
+    synchronizedRanges.push(range);
+  }
+
+  return {
+    synchronized,
+    totalResults,
+    from,
+    to,
+    requestedNist: true,
+    synchronizedRanges,
+  };
 };
 
 const normalizeCve = (cve) => {
@@ -148,7 +274,34 @@ const normalizeReferences = (references = []) => {
   }));
 };
 
+const getCveById = async (cveId) => {
+  const cve = await cveRepository.getCveById(cveId);
+
+  if (!cve) {
+    return null;
+  }
+
+  return {
+    ...cve,
+
+    metrics: cve.metrics.map((metric) => ({
+      ...metric,
+
+      score: metric.score !== null ? Number(metric.score) : null,
+
+      exploitability_score:
+        metric.exploitability_score !== null
+          ? Number(metric.exploitability_score)
+          : null,
+
+      impact_score:
+        metric.impact_score !== null ? Number(metric.impact_score) : null,
+    })),
+  };
+};
+
 module.exports = {
   getCves,
+  getCveById,
   syncCves,
 };

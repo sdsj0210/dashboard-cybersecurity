@@ -287,7 +287,144 @@ const saveReferences = async (connection, cveId, references) => {
   }
 };
 
+const getCveById = async (cveId) => {
+  const [cveRows] = await db.query(
+    `
+    SELECT
+      id,
+      cve_id,
+      source_identifier,
+      description_en,
+      description_es,
+      published_at,
+      last_modified_at,
+      status
+    FROM cves
+    WHERE cve_id = ?
+    `,
+    [cveId],
+  );
+
+  if (cveRows.length === 0) {
+    return null;
+  }
+
+  const cve = cveRows[0];
+
+  const [metrics] = await db.query(
+    `
+    SELECT
+      version,
+      score,
+      severity,
+      vector,
+      source,
+      type,
+      exploitability_score,
+      impact_score
+    FROM cve_metrics
+    WHERE cve_id = ?
+    `,
+    [cve.id],
+  );
+
+  const [products] = await db.query(
+    `
+    SELECT
+      id,
+      vendor,
+      product,
+      package_name,
+      collection_url,
+      default_status
+    FROM cve_products
+    WHERE cve_id = ?
+    `,
+    [cve.id],
+  );
+
+  for (const product of products) {
+    const [versions] = await db.query(
+      `
+      SELECT
+        version,
+        less_than,
+        less_than_or_equal,
+        version_type,
+        status
+      FROM cve_product_versions
+      WHERE cve_product_id = ?
+      `,
+      [product.id],
+    );
+
+    product.versions = versions;
+  }
+
+  const [weaknesses] = await db.query(
+    `
+    SELECT
+      weakness_code,
+      source,
+      type
+    FROM cve_weaknesses
+    WHERE cve_id = ?
+    `,
+    [cve.id],
+  );
+
+  const [references] = await db.query(
+    `
+    SELECT
+      url,
+      source,
+      tags
+    FROM cve_references
+    WHERE cve_id = ?
+    `,
+    [cve.id],
+  );
+
+  return {
+    ...cve,
+    metrics,
+    products,
+    weaknesses,
+    references,
+  };
+};
+
+const getSyncRanges = async () => {
+  const [rows] = await db.query(`
+    SELECT
+      id,
+      start_date,
+      end_date,
+      synchronized_at
+    FROM sync_ranges
+    ORDER BY start_date ASC
+  `);
+
+  return rows;
+};
+
+const saveSyncRange = async (startDate, endDate) => {
+  await db.query(
+    `
+    INSERT INTO sync_ranges (
+      start_date,
+      end_date
+    )
+    VALUES (?, ?)
+    `,
+    [startDate, endDate],
+  );
+};
+
 module.exports = {
   getAllCves,
+  getCveById,
   saveCve,
+  getSyncRanges,
+  saveSyncRange,
 };
