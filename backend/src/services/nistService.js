@@ -2,19 +2,21 @@ const NIST_API_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0";
 
 const RESULTS_PER_PAGE = 2000;
 
-const getCves = async (from, to) => {
+const fetchCves = async (params) => {
   let startIndex = 0;
   let vulnerabilities = [];
   let totalResults = 0;
 
   do {
-    const url =
-      `${NIST_API_URL}` +
-      `?pubStartDate=${from}T00:00:00.000` +
-      `&pubEndDate=${to}T23:59:59.999` +
-      `&noRejected` +
-      `&resultsPerPage=${RESULTS_PER_PAGE}` +
-      `&startIndex=${startIndex}`;
+    const searchParams = new URLSearchParams({
+      ...params,
+      resultsPerPage: RESULTS_PER_PAGE.toString(),
+      startIndex: startIndex.toString(),
+    });
+
+    searchParams.append("noRejected", "");
+
+    const url = `${NIST_API_URL}?${searchParams.toString()}`;
 
     const response = await fetch(url);
 
@@ -43,6 +45,21 @@ const getCves = async (from, to) => {
   };
 };
 
+const getCves = async (from, to) => {
+  return fetchCves({
+    pubStartDate: `${from}T00:00:00.000`,
+    pubEndDate: `${to}T23:59:59.999`,
+  });
+};
+
+const getModifiedCves = async (from, to) => {
+  return fetchCves({
+    lastModStartDate: `${from}T00:00:00.000`,
+    lastModEndDate: `${to}T23:59:59.999`,
+  });
+};
+
 module.exports = {
   getCves,
+  getModifiedCves,
 };

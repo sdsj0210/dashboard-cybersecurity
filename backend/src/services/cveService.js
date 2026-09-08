@@ -22,6 +22,29 @@ const addDays = (dateString, days) => {
   return formatDate(date);
 };
 
+const splitRangeIntoChunks = (from, to, maxDays = 120) => {
+  const ranges = [];
+
+  let currentStart = from;
+
+  while (currentStart <= to) {
+    let currentEnd = addDays(currentStart, maxDays - 1);
+
+    if (currentEnd > to) {
+      currentEnd = to;
+    }
+
+    ranges.push({
+      from: currentStart,
+      to: currentEnd,
+    });
+
+    currentStart = addDays(currentEnd, 1);
+  }
+
+  return ranges;
+};
+
 const normalizeDate = (date) => {
   return new Date(date).toISOString().slice(0, 10);
 };
@@ -121,23 +144,44 @@ const syncCves = async (from, to) => {
 
   const synchronizedRanges = [];
 
-  for (const range of missingRanges) {
-    const data = await nistService.getCves(range.from, range.to);
+  for (const missingRange of missingRanges) {
+    const chunks = splitRangeIntoChunks(missingRange.from, missingRange.to);
 
-    const vulnerabilities = data.vulnerabilities || [];
+    for (const range of chunks) {
+      console.log(`Consultando NIST: ${range.from} → ${range.to}`);
 
-    for (const vulnerability of vulnerabilities) {
-      const normalizedCve = normalizeCve(vulnerability.cve);
+      const data = await nistService.getCves(range.from, range.to);
 
-      await cveRepository.saveCve(normalizedCve);
+      const vulnerabilities = data.vulnerabilities || [];
+
+      console.log(`NIST devolvió ${vulnerabilities.length} vulnerabilidades`);
+
+      for (let i = 0; i < vulnerabilities.length; i++) {
+        const vulnerability = vulnerabilities[i];
+
+        const normalizedCve = normalizeCve(vulnerability.cve);
+
+        await cveRepository.saveCve(normalizedCve);
+
+        if ((i + 1) % 100 === 0) {
+          console.log(
+            `Guardadas ${i + 1} de ${vulnerabilities.length} vulnerabilidades`,
+          );
+        }
+      }
+
+      await cveRepository.saveSyncRange(range.from, range.to);
+
+      synchronized += vulnerabilities.length;
+      totalResults += data.totalResults || 0;
+
+      synchronizedRanges.push({
+        from: range.from,
+        to: range.to,
+      });
+
+      console.log(`Rango completado: ${range.from} → ${range.to}`);
     }
-
-    await cveRepository.saveSyncRange(range.from, range.to);
-
-    synchronized += vulnerabilities.length;
-    totalResults += data.totalResults || 0;
-
-    synchronizedRanges.push(range);
   }
 
   return {
@@ -147,6 +191,33 @@ const syncCves = async (from, to) => {
     to,
     requestedNist: true,
     synchronizedRanges,
+  };
+};
+
+const syncModifiedCves = async (from, to) => {
+  const data = await nistService.getModifiedCves(from, to);
+
+  const vulnerabilities = data.vulnerabilities || [];
+
+  console.log(`NIST devolvió ${vulnerabilities.length} CVEs modificados`);
+
+  for (let i = 0; i < vulnerabilities.length; i++) {
+    const vulnerability = vulnerabilities[i];
+
+    const normalizedCve = normalizeCve(vulnerability.cve);
+
+    await cveRepository.saveCve(normalizedCve);
+
+    if ((i + 1) % 100 === 0) {
+      console.log(
+        `Actualizados ${i + 1} de ${vulnerabilities.length} CVEs modificados`,
+      );
+    }
+  }
+
+  return {
+    synchronized: vulnerabilities.length,
+    totalResults: data.totalResults,
   };
 };
 
@@ -304,4 +375,5 @@ module.exports = {
   getCves,
   getCveById,
   syncCves,
+  syncModifiedCves,
 };
