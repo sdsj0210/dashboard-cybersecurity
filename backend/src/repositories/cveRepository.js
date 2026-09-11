@@ -1,7 +1,69 @@
 const db = require("../config/database");
 
-const getAllCves = async (filters = {}) => {
-  let query = `
+const buildCveFilters = (filters = {}) => {
+  let where = `
+    WHERE 1 = 1
+  `;
+
+  const params = [];
+
+  if (filters.severity) {
+    where += `
+      AND m.severity = ?
+    `;
+
+    params.push(filters.severity);
+  }
+
+  if (filters.product) {
+    where += `
+      AND EXISTS (
+        SELECT 1
+        FROM cve_products cp
+        WHERE cp.cve_id = c.id
+        AND cp.product LIKE ?
+      )
+    `;
+
+    params.push(`%${filters.product}%`);
+  }
+
+  if (filters.from) {
+    where += `
+      AND c.published_at >= ?
+    `;
+
+    params.push(filters.from);
+  }
+
+  if (filters.to) {
+    where += `
+      AND c.published_at < DATE_ADD(?, INTERVAL 1 DAY)
+    `;
+
+    params.push(filters.to);
+  }
+
+  if (filters.cveId) {
+    where += `
+      AND c.cve_id = ?
+    `;
+
+    params.push(filters.cveId);
+  }
+
+  return {
+    where,
+    params,
+  };
+};
+
+const getAllCves = async (filters = {}, pagination = {}) => {
+  const { limit = 20, offset = 0 } = pagination;
+
+  const { where, params } = buildCveFilters(filters);
+
+  const query = `
     SELECT DISTINCT
       c.id,
       c.cve_id,
@@ -16,8 +78,15 @@ const getAllCves = async (filters = {}) => {
       m.severity,
       m.version AS score_version,
 
-      p.vendor,
-      p.product
+      (
+        SELECT GROUP_CONCAT(
+          DISTINCT cp.product
+          ORDER BY cp.product
+          SEPARATOR ', '
+        )
+        FROM cve_products cp
+        WHERE cp.cve_id = c.id
+      ) AS products_summary
 
     FROM cves c
 
@@ -25,61 +94,33 @@ const getAllCves = async (filters = {}) => {
       ON m.cve_id = c.id
       AND m.type = 'Primary'
 
-    LEFT JOIN cve_products p
-      ON p.cve_id = c.id
+    ${where}
 
-    WHERE 1 = 1
-  `;
-
-  const params = [];
-
-  if (filters.severity) {
-    query += `
-      AND m.severity = ?
-    `;
-
-    params.push(filters.severity);
-  }
-
-  if (filters.product) {
-    query += `
-      AND p.product LIKE ?
-    `;
-
-    params.push(`%${filters.product}%`);
-  }
-
-  if (filters.from) {
-    query += `
-      AND c.published_at >= ?
-    `;
-
-    params.push(filters.from);
-  }
-
-  if (filters.to) {
-    query += `
-      AND c.published_at < DATE_ADD(?, INTERVAL 1 DAY)
-    `;
-
-    params.push(filters.to);
-  }
-
-  if (filters.cveId) {
-    query += `
-      AND c.cve_id = ?
-    `;
-
-    params.push(filters.cveId);
-  }
-
-  query += `
     ORDER BY c.published_at DESC
+
+    LIMIT ? OFFSET ?
   `;
 
-  const [rows] = await db.query(query, params);
+  const [rows] = await db.query(query, [...params, limit, offset]);
 
-  return rows;
+  const countQuery = `
+    SELECT COUNT(DISTINCT c.id) AS total
+
+    FROM cves c
+
+    LEFT JOIN cve_metrics m
+      ON m.cve_id = c.id
+      AND m.type = 'Primary'
+
+    ${where}
+  `;
+
+  const [countRows] = await db.query(countQuery, params);
+
+  return {
+    rows,
+    total: countRows[0].total,
+  };
 };
 
 const saveCve = async (data) => {

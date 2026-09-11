@@ -1,13 +1,35 @@
 const nistService = require("./nistService");
 const cveRepository = require("../repositories/cveRepository");
 
-const getCves = async (filters = {}) => {
-  const cves = await cveRepository.getAllCves(filters);
+const getCves = async (filters = {}, pagination = {}) => {
+  const page = Math.max(parseInt(pagination.page, 10) || 1, 1);
 
-  return cves.map((cve) => ({
+  const limit = Math.min(
+    Math.max(parseInt(pagination.limit, 10) || 20, 1),
+    100,
+  );
+
+  const offset = (page - 1) * limit;
+
+  const { rows, total } = await cveRepository.getAllCves(filters, {
+    limit,
+    offset,
+  });
+
+  const data = rows.map((cve) => ({
     ...cve,
     score: cve.score !== null ? Number(cve.score) : null,
   }));
+
+  return {
+    data,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
 
 const formatDate = (date) => {

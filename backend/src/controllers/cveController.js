@@ -10,9 +10,14 @@ const getCves = async (req, res) => {
       cveId: req.query.cveId,
     };
 
-    const cves = await cveService.getCves(filters);
+    const pagination = {
+      page: req.query.page,
+      limit: req.query.limit,
+    };
 
-    res.json(cves);
+    const result = await cveService.getCves(filters, pagination);
+
+    res.json(result);
   } catch (error) {
     console.error(error);
 
