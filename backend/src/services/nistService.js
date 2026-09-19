@@ -2,9 +2,47 @@ const NIST_API_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0";
 
 const RESULTS_PER_PAGE = 2000;
 
+const sleep = (ms) => {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+};
+
+const fetchWithRetry = async (url, maxRetries = 3) => {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const response = await fetch(url, {
+      headers: {
+        apiKey: process.env.NVD_API_KEY,
+      },
+    });
+
+    if (response.ok) {
+      return response;
+    }
+
+    if (response.status !== 429) {
+      const message = response.headers.get("message");
+
+      throw new Error(
+        `Error al consultar NIST: ${response.status} - ${message}`,
+      );
+    }
+
+    if (attempt === maxRetries) {
+      throw new Error(
+        `NIST sigue devolviendo 429 después de ${maxRetries} reintentos`,
+      );
+    }
+
+    const waitTime = (attempt + 1) * 5000;
+
+    console.log(`Error 429. Esperando ${waitTime / 1000} segundos...`);
+
+    await sleep(waitTime);
+  }
+};
+
 const fetchCves = async (params) => {
   let startIndex = 0;
-  let vulnerabilities = [];
+  const vulnerabilities = [];
   let totalResults = 0;
 
   do {
@@ -18,11 +56,7 @@ const fetchCves = async (params) => {
 
     const url = `${NIST_API_URL}?${searchParams.toString()}`;
 
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error(`Error al consultar NIST: ${response.status}`);
-    }
+    const response = await fetchWithRetry(url);
 
     const data = await response.json();
 

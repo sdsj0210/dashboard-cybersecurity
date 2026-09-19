@@ -11,7 +11,6 @@ Este documento sirve para organizar y seguir el avance del proyecto.
 - [x] Definir tecnologías principales
 - [x] Definir fuente de datos oficial para CVEs
 - [x] Preparar estructura inicial del proyecto
- 
 
 ## ✅ Hito 2 — Backend y Base de Datos
 
@@ -47,25 +46,25 @@ Este documento sirve para organizar y seguir el avance del proyecto.
 
 ### Endpoint de CVEs
 
-- [ ] Revisar `GET /api/cves`
-- [ ] Evitar CVEs duplicados cuando tienen varios productos afectados
-- [ ] Definir cómo devolver los productos afectados
-- [ ] Añadir paginación al endpoint
-- [ ] Añadir parámetro `page`
-- [ ] Añadir parámetro `limit`
-- [ ] Devolver número total de CVEs
-- [ ] Devolver número total de páginas
-- [ ] Probar paginación con una cantidad grande de datos
+- [x] Revisar `GET /api/cves`
+- [x] Evitar CVEs duplicados cuando tienen varios productos afectados
+- [x] Definir cómo devolver los productos afectados
+- [x] Añadir paginación al endpoint
+- [x] Añadir parámetro `page`
+- [x] Añadir parámetro `limit`
+- [x] Devolver número total de CVEs
+- [x] Devolver número total de páginas
+- [x] Probar paginación con una cantidad grande de datos
 
 ### NVD API
 
-- [ ] Obtener API Key gratuita de NVD
-- [ ] Añadir API Key a las variables de entorno
-- [ ] Enviar API Key en las peticiones a NVD
-- [ ] Detectar respuestas HTTP 429
-- [ ] Implementar reintentos
-- [ ] Añadir espera entre reintentos
-- [ ] Evitar que una sincronización completa falle por una petición puntual
+- [x] Obtener API Key gratuita de NVD
+- [x] Añadir API Key a las variables de entorno
+- [x] Enviar API Key en las peticiones a NVD
+- [x] Detectar respuestas HTTP 429
+- [x] Implementar reintentos
+- [x] Añadir espera entre reintentos
+- [x] Evitar que una sincronización completa falle por una petición puntual
 
 ---
 
