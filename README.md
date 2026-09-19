@@ -236,6 +236,32 @@ MySQL
 
 La automatización se ejecuta mientras el backend se encuentra en funcionamiento.
 
+## Hito 2.1 - Mejoras del Backend
+
+Tras la revisión del Hito 2, se realizaron las siguientes mejoras:
+
+- Se corrigió la duplicación de filas del listado causada por la relación con los productos afectados. El filtro por producto utiliza `EXISTS` y los nombres se agrupan en `products_summary`.
+- Se añadió paginación a `GET /api/cves` mediante `page` y `limit`. La respuesta incluye `data` y `pagination`, con el número total de CVEs y de páginas.
+- Se configuró la API key de NVD mediante `NVD_API_KEY` en `backend/.env` y se añadieron hasta tres reintentos con espera ante respuestas HTTP `429`.
+
+Ejemplo de consulta paginada:
+
+```http
+GET /api/cves?page=1&limit=5
+```
+
+Los filtros pueden combinarse con la paginación:
+
+```http
+GET /api/cves?severity=HIGH&page=1&limit=5
+```
+
+La documentación de estos cambios se encuentra en:
+
+```text
+docs/HITO_2.1_MEJORAS_DEL_BACKEND.md
+```
+
 ## Estructura actual del backend
 
 ```text
