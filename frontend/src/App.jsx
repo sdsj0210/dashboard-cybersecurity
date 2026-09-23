@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { getCves } from "./services/cveService";
 
+import { Button } from "@/components/ui/button";
+
 function App() {
   const [cves, setCves] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,8 +33,12 @@ function App() {
   }
 
   return (
-    <main>
-      <h1>Dashboard de Ciberseguridad</h1>
+    <main className="w-full px-5 py-5">
+      <h1 className="text-3xl font-bold text-blue-600">
+        Dashboard de Ciberseguridad
+      </h1>
+
+      <Button>Consultar CVEs</Button>
 
       <h2>Conexión con el backend</h2>
 
