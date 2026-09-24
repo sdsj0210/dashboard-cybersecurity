@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getCves } from "./services/cveService";
 
+import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 
 function App() {
@@ -33,33 +34,31 @@ function App() {
   }
 
   return (
-    <main className="w-full px-5 py-5">
-      <h1 className="text-3xl font-bold text-blue-600">
-        Dashboard de Ciberseguridad
-      </h1>
+    <Layout>
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">Dashboard</h2>
 
-      <Button>Consultar CVEs</Button>
+          <p className="text-sm text-muted-foreground">
+            Resumen de vulnerabilidades registradas en el sistema.
+          </p>
+        </div>
 
-      <h2>Conexión con el backend</h2>
+        <div>
+          <p>Vulnerabilidades recibidas: {cves.length}</p>
 
-      <p>Vulnerabilidades recibidas: {cves.length}</p>
-
-      {cves.length === 0 ? (
-        <p>No se encontraron vulnerabilidades.</p>
-      ) : (
-        <ul>
           {cves.map((cve) => (
-            <li key={cve.cve_id}>
+            <p key={cve.cve_id}>
               <strong>{cve.cve_id}</strong>
               {" — "}
               {cve.severity ?? "Sin severidad"}
               {" — "}
               CVSS: {cve.score ?? "N/D"}
-            </li>
+            </p>
           ))}
-        </ul>
-      )}
-    </main>
+        </div>
+      </div>
+    </Layout>
   );
 }
 
