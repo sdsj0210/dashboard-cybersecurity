@@ -28,3 +28,13 @@ export const getCves = async (
 
   return response.json();
 };
+
+export const getCveById = async (cveId) => {
+  const response = await fetch(`${API_URL}/${cveId}`);
+
+  if (!response.ok) {
+    throw new Error("Error al obtener la vulnerabilidad");
+  }
+
+  return response.json();
+};

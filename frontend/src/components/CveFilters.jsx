@@ -67,11 +67,15 @@ function CveFilters({
 
       <div className="flex items-end gap-2">
         <div className="flex-1">
-          <label className="mb-1 block text-sm text-muted-foreground">
+          <label
+            htmlFor="from-date"
+            className="mb-1 block text-sm text-muted-foreground"
+          >
             Desde
           </label>
 
           <Input
+            id="from-date"
             type="date"
             value={from}
             onChange={(e) => onFromChange(e.target.value)}
@@ -79,11 +83,15 @@ function CveFilters({
         </div>
 
         <div className="flex-1">
-          <label className="mb-1 block text-sm text-muted-foreground">
+          <label
+            htmlFor="to-date"
+            className="mb-1 block text-sm text-muted-foreground"
+          >
             Hasta
           </label>
 
           <Input
+            id="to-date"
             type="date"
             value={to}
             onChange={(e) => onToChange(e.target.value)}

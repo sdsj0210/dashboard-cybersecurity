@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 
 function CvePagination({ page, pagination, onPrevious, onNext }) {
-  if (!pagination) {
+  if (!pagination || pagination.totalPages === 0) {
     return null;
   }
 
