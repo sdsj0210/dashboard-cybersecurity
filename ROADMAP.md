@@ -72,6 +72,61 @@ Este documento sirve para organizar y seguir el avance del proyecto.
 
 ### Preparación
 
+- [x] Crear frontend con React
+- [x] Configurar estructura de carpetas
+- [x] Configurar conexión con el backend
+- [x] Definir estructura general del dashboard
+- [x] Crear layout principal
+
+### Dashboard
+
+- [x] Crear página principal
+- [x] Mostrar número total de CVEs
+- [ ] Mostrar CVEs por severidad
+- [x] Mostrar información relevante del sistema
+- [ ] Diseñar tarjetas resumen
+
+### Listado de CVEs
+
+- [x] Crear tabla de CVEs
+- [x] Mostrar CVE ID
+- [x] Mostrar descripción
+- [x] Mostrar puntuación CVSS
+- [x] Mostrar severidad
+- [x] Mostrar fecha de publicación
+- [x] Mostrar producto o productos afectados
+- [x] Conectar tabla con `GET /api/cves`
+- [x] Implementar paginación
+- [x] Crear estados de carga
+- [x] Crear estado sin resultados
+- [x] Mostrar errores de conexión correctamente
+
+### Búsqueda y filtros
+
+- [x] Buscar por CVE ID
+- [x] Filtrar por severidad
+- [x] Filtrar por producto
+- [x] Filtrar por fecha
+- [x] Combinar filtros
+- [x] Mantener filtros al cambiar de página
+- [x] Añadir opción para limpiar filtros
+
+### Detalle de CVE
+
+- [x] Crear vista de detalle
+- [x] Mostrar descripción completa
+- [x] Mostrar puntuación CVSS
+- [x] Mostrar vector CVSS
+- [x] Mostrar métricas disponibles
+- [x] Mostrar productos afectados
+- [x] Mostrar referencias externas
+- [x] Mostrar fecha de publicación
+- [x] Mostrar fecha de última modificación
+
+---
+
+### Preparación
+
 - [ ] Crear frontend con React
 - [ ] Configurar estructura de carpetas
 - [ ] Configurar conexión con el backend
@@ -178,16 +233,11 @@ Este documento sirve para organizar y seguir el avance del proyecto.
 
 ## Estado actual
 
-**Hito actual:** Hito 2.1 — Mejoras antes del Frontend
+**Hito actual:** Hito 3 — Frontend
 
-**Siguiente tarea:**
+**Estado:** Listado, filtros, paginación, navegación y detalle de CVEs implementados. Diseño responsive y compilación del frontend verificados.
 
-- [ ] Corregir los CVEs duplicados en `GET /api/cves`
+**Pendiente del roadmap:**
 
-Después:
-
-- [ ] Añadir paginación
-- [ ] Configurar API Key de NVD
-- [ ] Implementar manejo de errores 429 y reintentos
-
-Una vez completadas estas tareas, comenzará el **Hito 3 — Frontend**.
+- [ ] Mostrar resumen de CVEs por severidad
+- [ ] Diseñar tarjetas resumen
