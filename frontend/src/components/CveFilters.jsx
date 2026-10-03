@@ -25,7 +25,7 @@ function CveFilters({
 }) {
   return (
     <div className="space-y-3">
-      <div className="flex gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_1fr]">
         <Input
           placeholder="Buscar por CVE ID"
           value={search}
@@ -33,7 +33,7 @@ function CveFilters({
         />
 
         <Select value={severity || "ALL"} onValueChange={onSeverityChange}>
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="w-full sm:w-36">
             <SelectValue>
               {severity === ""
                 ? "Todas"
@@ -65,7 +65,7 @@ function CveFilters({
         />
       </div>
 
-      <div className="flex items-end gap-2">
+      <div className="grid grid-cols-2 items-end gap-2 sm:grid-cols-[1fr_1fr_auto_auto]">
         <div className="flex-1">
           <label
             htmlFor="from-date"

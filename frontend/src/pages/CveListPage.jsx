@@ -65,7 +65,9 @@ function CVEListPage() {
     <Layout>
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Dashboard</h2>
+          <h2 className="text-2xl font-semibold tracking-tight">
+            Vulnerabilidades
+          </h2>
 
           <p className="text-sm text-muted-foreground">
             Resumen de vulnerabilidades registradas en el sistema.
@@ -110,7 +112,9 @@ function CVEListPage() {
         />
 
         <div>
-          <p className="mb-1">Vulnerabilidades recibidas: {cves.length}</p>
+          <p className="mb-2 text-sm text-muted-foreground">
+            Vulnerabilidades encontradas: {pagination?.total ?? 0}
+          </p>
 
           <CveTable cves={cves} />
 

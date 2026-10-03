@@ -46,7 +46,7 @@ function CveDetailPage() {
         {cve.description_es ?? cve.description_en ?? "Sin descripción"}
       </p>
 
-      <div className="mt-6 space-y-4">
+      <div className="mt-6 min-w-0 space-y-4 break-words">
         <div>
           <p className="text-sm text-muted-foreground">Publicado</p>
           <p>
@@ -71,11 +71,14 @@ function CveDetailPage() {
           {cve.metrics?.length > 0 ? (
             <div className="space-y-2">
               {cve.metrics.map((metric, index) => (
-                <div key={index} className="rounded-lg border bg-card p-4">
+                <div
+                  key={index}
+                  className="min-w-0 rounded-lg border bg-card p-4"
+                >
                   <p>Versión: {metric.version ?? "N/D"}</p>
                   <p>Puntuación: {metric.score ?? "N/D"}</p>
                   <p>Severidad: {metric.severity ?? "N/D"}</p>
-                  <p>Vector: {metric.vector ?? "N/D"}</p>
+                  <p className="break-all">Vector: {metric.vector ?? "N/D"}</p>
                 </div>
               ))}
             </div>
@@ -83,6 +86,68 @@ function CveDetailPage() {
             <p>No hay métricas disponibles.</p>
           )}
         </div>
+
+        <section className="space-y-2">
+          <h3 className="font-semibold">Productos afectados</h3>
+
+          {cve.products?.length > 0 ? (
+            cve.products.map((product) => (
+              <div
+                key={product.id}
+                className="min-w-0 rounded-lg border bg-card p-4"
+              >
+                <p>Proveedor: {product.vendor ?? "N/D"}</p>
+                <p>Producto: {product.product ?? "N/D"}</p>
+                <p>Paquete: {product.package_name ?? "N/D"}</p>
+
+                {product.versions?.length > 0 && (
+                  <div className="mt-2">
+                    <p className="font-medium">Versiones afectadas</p>
+
+                    {product.versions.map((version, index) => (
+                      <p key={index} className="break-all">
+                        {version.version ?? "N/D"}
+                        {version.less_than &&
+                          ` - anterior a ${version.less_than}`}
+                        {version.less_than_or_equal &&
+                          ` - hasta ${version.less_than_or_equal}`}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No hay productos disponibles.
+            </p>
+          )}
+        </section>
+
+        <section className="space-y-2">
+          <h3 className="font-semibold">Referencias externas</h3>
+
+          {cve.references?.length > 0 ? (
+            <ul className="space-y-2">
+              {cve.references.map((reference, index) => (
+                <li key={index} className="break-all">
+                  <a
+                    href={reference.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary underline"
+                  >
+                    {reference.url}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No hay referencias disponibles.
+            </p>
+          )}
+        </section>
       </div>
     </Layout>
   );
