@@ -85,7 +85,7 @@ DB_USER=usuario_mysql
 DB_PASSWORD=contraseña_mysql
 DB_NAME=dashboard_cybersecurity
 
-NVD_API_KEY=tu_clave
+NVD_API_KEY=api_nvd
 ```
 
 El archivo `.env` no debe subirse al repositorio.
