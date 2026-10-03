@@ -40,7 +40,7 @@ function CveTable({ cves }) {
               </span>
             </div>
 
-            <p className="line-clamp-3 break-words text-sm">
+            <p className="line-clamp-3 wrap-break-word text-sm">
               {cve.description_es ?? cve.description_en ?? "Sin descripción"}
             </p>
 

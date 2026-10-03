@@ -53,14 +53,6 @@ function CVEListPage() {
     loadCves();
   }, [page, cveId, severity, productFilter, from, to]);
 
-  if (loading) {
-    return <p>Cargando vulnerabilidades...</p>;
-  }
-
-  if (error) {
-    return <p>Error: {error}</p>;
-  }
-
   return (
     <Layout>
       <div className="space-y-6">
@@ -112,18 +104,33 @@ function CVEListPage() {
         />
 
         <div>
-          <p className="mb-2 text-sm text-muted-foreground">
-            Vulnerabilidades encontradas: {pagination?.total ?? 0}
-          </p>
+          {loading ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Cargando vulnerabilidades...
+            </p>
+          ) : error ? (
+            <p
+              role="alert"
+              className="py-8 text-center text-sm text-destructive"
+            >
+              Error: {error}
+            </p>
+          ) : (
+            <>
+              <p className="mb-2 text-sm text-muted-foreground">
+                Vulnerabilidades encontradas: {pagination?.total ?? 0}
+              </p>
 
-          <CveTable cves={cves} />
+              <CveTable cves={cves} />
 
-          <CvePagination
-            page={page}
-            pagination={pagination}
-            onPrevious={() => setPage(page - 1)}
-            onNext={() => setPage(page + 1)}
-          />
+              <CvePagination
+                page={page}
+                pagination={pagination}
+                onPrevious={() => setPage(page - 1)}
+                onNext={() => setPage(page + 1)}
+              />
+            </>
+          )}
         </div>
       </div>
     </Layout>

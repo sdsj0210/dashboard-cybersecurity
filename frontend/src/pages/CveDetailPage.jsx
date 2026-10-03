@@ -46,7 +46,7 @@ function CveDetailPage() {
         {cve.description_es ?? cve.description_en ?? "Sin descripción"}
       </p>
 
-      <div className="mt-6 min-w-0 space-y-4 break-words">
+      <div className="mt-6 min-w-0 space-y-4 wrap-break-word">
         <div>
           <p className="text-sm text-muted-foreground">Publicado</p>
           <p>
