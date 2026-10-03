@@ -10,6 +10,10 @@ El proyecto centraliza información de ciberseguridad en una solución propia, a
 - Express
 - MySQL
 - React
+- Vite
+- Tailwind CSS v4
+- shadcn/ui
+- React Router
 - Git y GitHub
 - node-cron
 - nodemon
@@ -70,7 +74,7 @@ Crear el archivo:
 backend/.env
 ```
 
-con los datos de conexión a MySQL:
+con los datos de conexión a MySQL y la API key de NVD:
 
 ```env
 PORT=3000
@@ -80,6 +84,8 @@ DB_PORT=3306
 DB_USER=usuario_mysql
 DB_PASSWORD=contraseña_mysql
 DB_NAME=dashboard_cybersecurity
+
+NVD_API_KEY=tu_clave
 ```
 
 El archivo `.env` no debe subirse al repositorio.
@@ -262,6 +268,61 @@ La documentación de estos cambios se encuentra en:
 docs/HITO_2.1_MEJORAS_DEL_BACKEND.md
 ```
 
+## Hito 3 - Frontend
+
+Se desarrolló la interfaz web del dashboard utilizando React con Vite, JavaScript y JSX, Tailwind CSS v4 y shadcn/ui.
+
+El frontend se organizó mediante páginas, componentes reutilizables y una capa de servicios para realizar las peticiones HTTP al backend utilizando Fetch API.
+
+### Funcionalidades implementadas
+
+- Layout principal con cabecera y navegación.
+- Listado de vulnerabilidades obtenido mediante `GET /api/cves`.
+- Visualización de CVE ID, descripción, puntuación CVSS, severidad, fecha de publicación y productos afectados.
+- Contador total de vulnerabilidades encontradas.
+- Paginación de cinco registros por página.
+- Búsqueda por CVE ID y producto.
+- Filtros por severidad y rango de fechas.
+- Combinación y limpieza de filtros.
+- Navegación mediante React Router.
+- Vista de detalle conectada con `GET /api/cves/:cveId`.
+- Visualización de métricas CVSS, productos, versiones afectadas y referencias externas.
+- Estados de carga, error y ausencia de resultados.
+- Diseño responsive con tabla para escritorio y tarjetas para dispositivos móviles.
+
+### Instalación y ejecución del frontend
+
+Desde la carpeta `frontend`:
+
+```powershell
+npm install
+npm run dev
+```
+
+La aplicación se ejecuta por defecto en:
+
+```text
+http://localhost:5173
+```
+
+Para consultar los datos, el backend debe estar funcionando en:
+
+```text
+http://localhost:3000
+```
+
+Para generar la compilación de producción:
+
+```powershell
+npm run build
+```
+
+La documentación detallada de este hito se encuentra en:
+
+```text
+docs/HITO_3_FRONTEND.md
+```
+
 ## Estructura actual del backend
 
 ```text
@@ -284,6 +345,36 @@ backend/
     └── services/
         ├── cveService.js
         └── nistService.js
+```
+
+## Estructura actual del frontend
+
+```text
+frontend/
+├── index.html
+├── package.json
+├── vite.config.js
+└── src/
+    ├── App.jsx
+    ├── main.jsx
+    ├── index.css
+    ├── components/
+    │   ├── Layout.jsx
+    │   ├── CveFilters.jsx
+    │   ├── CveTable.jsx
+    │   ├── CvePagination.jsx
+    │   └── ui/
+    │       ├── button.jsx
+    │       ├── input.jsx
+    │       ├── select.jsx
+    │       └── table.jsx
+    ├── pages/
+    │   ├── CveListPage.jsx
+    │   └── CveDetailPage.jsx
+    ├── services/
+    │   └── cveService.js
+    └── lib/
+        └── utils.js
 ```
 
 ## Trabajo realizado
@@ -316,3 +407,19 @@ backend/
 - Sincronización manual.
 - Sincronización automática diaria.
 - Actualización de vulnerabilidades modificadas por NIST.
+
+### Frontend
+
+- Inicialización de React con Vite.
+- Configuración de Tailwind CSS v4 y shadcn/ui.
+- Organización del frontend por páginas, componentes y servicios.
+- Creación del layout principal.
+- Conexión con los endpoints del backend mediante Fetch API.
+- Listado de vulnerabilidades con paginación.
+- Implementación de búsqueda y filtros combinables.
+- Contador total de resultados.
+- Configuración de rutas mediante React Router.
+- Vista de detalle con métricas CVSS, productos afectados y referencias externas.
+- Gestión de estados de carga, error y resultados vacíos.
+- Adaptación responsive para escritorio y dispositivos móviles.
+- Configuración de ESLint y compilación con Vite.
