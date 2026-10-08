@@ -1,5 +1,17 @@
 const cveService = require("../services/cveService");
 
+const isValidDate = (value) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const date = new Date(`${value}T00:00:00.000Z`);
+
+  return (
+    !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+  );
+};
+
 const getCves = async (req, res) => {
   try {
     const filters = {
@@ -37,9 +49,28 @@ const syncCves = async (req, res) => {
       });
     }
 
+    if (!isValidDate(from) || !isValidDate(to)) {
+      return res.status(400).json({
+        message: "Las fechas deben tener formato YYYY-MM-DD",
+      });
+    }
+
     if (from > to) {
       return res.status(400).json({
         message: "La fecha inicial no puede ser posterior a la fecha final",
+      });
+    }
+
+    // Limitar el rango máximo a 120 días
+    const fromDate = new Date(`${from}T00:00:00.000Z`);
+    const toDate = new Date(`${to}T00:00:00.000Z`);
+
+    const diffDays =
+      (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24);
+
+    if (diffDays > 120) {
+      return res.status(400).json({
+        message: "El rango máximo permitido es de 120 días",
       });
     }
 

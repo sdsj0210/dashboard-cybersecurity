@@ -8,6 +8,8 @@ router.get("/", cveController.getCves);
 
 router.get("/:cveId", cveController.getCveById);
 
-router.post("/sync", cveController.syncCves);
+if (process.env.NODE_ENV !== "production") {
+  router.post("/sync", cveController.syncCves);
+}
 
 module.exports = router;

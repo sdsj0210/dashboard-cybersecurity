@@ -8,35 +8,54 @@ const sleep = (ms) => {
 
 const fetchWithRetry = async (url, maxRetries = 3) => {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const response = await fetch(url, {
-      headers: {
-        apiKey: process.env.NVD_API_KEY,
-      },
-    });
+    const controller = new AbortController();
 
-    if (response.ok) {
-      return response;
+    const timeout = setTimeout(() => {
+      controller.abort();
+    }, 15000);
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          apiKey: process.env.NVD_API_KEY,
+        },
+        signal: controller.signal,
+      });
+
+      if (response.ok) {
+        return response;
+      }
+
+      if (response.status !== 429) {
+        const message = response.headers.get("message");
+
+        throw new Error(
+          `Error al consultar NIST: ${response.status} - ${message}`,
+        );
+      }
+
+      if (attempt === maxRetries) {
+        throw new Error(
+          `NIST sigue devolviendo 429 después de ${maxRetries} reintentos`,
+        );
+      }
+
+      const waitTime = (attempt + 1) * 5000;
+
+      console.log(`Error 429. Esperando ${waitTime / 1000} segundos...`);
+
+      await sleep(waitTime);
+    } catch (error) {
+      if (error.name === "AbortError") {
+        throw new Error(
+          "La solicitud a NIST superó el tiempo máximo de espera",
+        );
+      }
+
+      throw error;
+    } finally {
+      clearTimeout(timeout);
     }
-
-    if (response.status !== 429) {
-      const message = response.headers.get("message");
-
-      throw new Error(
-        `Error al consultar NIST: ${response.status} - ${message}`,
-      );
-    }
-
-    if (attempt === maxRetries) {
-      throw new Error(
-        `NIST sigue devolviendo 429 después de ${maxRetries} reintentos`,
-      );
-    }
-
-    const waitTime = (attempt + 1) * 5000;
-
-    console.log(`Error 429. Esperando ${waitTime / 1000} segundos...`);
-
-    await sleep(waitTime);
   }
 };
 
