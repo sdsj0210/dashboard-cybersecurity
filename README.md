@@ -74,7 +74,7 @@ Crear el archivo:
 backend/.env
 ```
 
-con los datos de conexión a MySQL y la API key de NVD:
+con los datos de conexión a MySQL, la API key de NVD y la configuración del entorno:
 
 ```env
 PORT=3000
@@ -86,6 +86,9 @@ DB_PASSWORD=contraseña_mysql
 DB_NAME=dashboard_cybersecurity
 
 NVD_API_KEY=api_nvd
+
+FRONTEND_URL=http://localhost:5173
+NODE_ENV=development
 ```
 
 El archivo `.env` no debe subirse al repositorio.
@@ -205,7 +208,7 @@ Si la vulnerabilidad no existe, el backend responde con estado `404`.
 POST /api/cves/sync?from=2025-01-01&to=2025-01-10
 ```
 
-Permite sincronizar vulnerabilidades correspondientes a un rango de fechas.
+Permite sincronizar vulnerabilidades correspondientes a un rango de fechas de hasta 120 días. Solo está disponible fuera del entorno de producción.
 
 Si parte del periodo ya está almacenado, el backend consulta únicamente las fechas que faltan.
 
@@ -321,6 +324,27 @@ La documentación detallada de este hito se encuentra en:
 
 ```text
 docs/HITO_3_FRONTEND.md
+```
+
+## Extra - Seguridad del Backend
+
+Se incorporaron medidas adicionales de protección al backend:
+
+- Cabeceras HTTP de seguridad mediante Helmet.
+- CORS restringido al origen configurado en `FRONTEND_URL`.
+- Rate Limiting de 100 peticiones cada 15 minutos en las rutas de CVEs.
+- Límite de 10 KB para los cuerpos JSON.
+- Validación de fechas y rango máximo de 120 días para la sincronización manual.
+- Deshabilitación de `POST /api/cves/sync` en producción, manteniendo la sincronización automática diaria con `node-cron`.
+- Timeout de 15 segundos por intento de solicitud a NIST.
+- Auditoría y actualización de dependencias con `npm audit fix`.
+
+La comprobación de las dependencias de producción mediante `npm audit --omit=dev` devolvió `0 vulnerabilities` tras aplicar las correcciones.
+
+La documentación detallada se encuentra en:
+
+```text
+docs/EXTRA_SEGURIDAD_BACKEND.md
 ```
 
 ## Estructura actual del backend
