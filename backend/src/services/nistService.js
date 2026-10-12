@@ -23,7 +23,8 @@ const fetchWithRetry = async (url, maxRetries = 3) => {
       });
 
       if (response.ok) {
-        return response;
+        const data = await response.json();
+        return data;
       }
 
       if (response.status !== 429) {
@@ -39,12 +40,6 @@ const fetchWithRetry = async (url, maxRetries = 3) => {
           `NIST sigue devolviendo 429 después de ${maxRetries} reintentos`,
         );
       }
-
-      const waitTime = (attempt + 1) * 5000;
-
-      console.log(`Error 429. Esperando ${waitTime / 1000} segundos...`);
-
-      await sleep(waitTime);
     } catch (error) {
       if (error.name === "AbortError") {
         throw new Error(
@@ -56,6 +51,12 @@ const fetchWithRetry = async (url, maxRetries = 3) => {
     } finally {
       clearTimeout(timeout);
     }
+
+    const waitTime = (attempt + 1) * 5000;
+
+    console.log(`Error 429. Esperando ${waitTime / 1000} segundos...`);
+
+    await sleep(waitTime);
   }
 };
 
@@ -75,9 +76,7 @@ const fetchCves = async (params) => {
 
     const url = `${NIST_API_URL}?${searchParams.toString()}`;
 
-    const response = await fetchWithRetry(url);
-
-    const data = await response.json();
+    const data = await fetchWithRetry(url);
 
     const pageVulnerabilities = data.vulnerabilities || [];
 

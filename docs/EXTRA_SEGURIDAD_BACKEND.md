@@ -314,9 +314,7 @@ Si se supera el tiempo máximo:
 
 ```javascript
 if (error.name === "AbortError") {
-  throw new Error(
-    "La solicitud a NIST superó el tiempo máximo de espera",
-  );
+  throw new Error("La solicitud a NIST superó el tiempo máximo de espera");
 }
 ```
 
@@ -329,6 +327,15 @@ finally {
 ```
 
 La lógica existente de reintentos ante respuestas HTTP `429` se mantiene.
+
+La lectura del cuerpo de la respuesta mediante `response.json()` se
+realiza dentro del mismo bloque protegido por el temporizador.
+
+De esta manera, el límite de 15 segundos se aplica tanto a la petición
+HTTP como a la lectura del JSON recibido.
+
+La función `fetchWithRetry()` devuelve directamente los datos procesados,
+que posteriormente utiliza `fetchCves()`.
 
 ## Auditoría de dependencias
 
