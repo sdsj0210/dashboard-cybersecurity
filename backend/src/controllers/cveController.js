@@ -22,6 +22,22 @@ const getCves = async (req, res) => {
       cveId: req.query.cveId,
     };
 
+    // Validar fechas de los filtros
+    if (
+      (filters.from && !isValidDate(filters.from)) ||
+      (filters.to && !isValidDate(filters.to))
+    ) {
+      return res.status(400).json({
+        message: "Las fechas deben tener formato YYYY-MM-DD y ser válidas",
+      });
+    }
+
+    if (filters.from && filters.to && filters.from > filters.to) {
+      return res.status(400).json({
+        message: "La fecha inicial no puede ser posterior a la fecha final",
+      });
+    }
+
     const pagination = {
       page: req.query.page,
       limit: req.query.limit,

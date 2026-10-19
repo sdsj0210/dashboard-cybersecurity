@@ -7,9 +7,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 function CveTable({ cves }) {
+  const location = useLocation();
+
+  const returnTo = `${location.pathname}${location.search}`;
+
   if (cves.length === 0) {
     return (
       <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
@@ -30,6 +34,7 @@ function CveTable({ cves }) {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <Link
                 to={`/cves/${cve.cve_id}`}
+                state={{ returnTo }}
                 className="font-semibold text-primary hover:underline"
               >
                 {cve.cve_id}
@@ -67,6 +72,7 @@ function CveTable({ cves }) {
 
             <Link
               to={`/cves/${cve.cve_id}`}
+              state={{ returnTo }}
               className="inline-block text-sm font-medium text-primary hover:underline"
             >
               Ver detalle →
@@ -95,6 +101,7 @@ function CveTable({ cves }) {
                 <TableCell className="font-medium">
                   <Link
                     to={`/cves/${cve.cve_id}`}
+                    state={{ returnTo }}
                     className="text-primary hover:underline"
                   >
                     {cve.cve_id}
