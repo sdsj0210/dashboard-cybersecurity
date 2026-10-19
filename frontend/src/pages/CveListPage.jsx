@@ -2,22 +2,12 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getCves } from "@/services/cveService";
 
+import { isValidDate } from "@/utils/dateUtils";
+
 import Layout from "@/components/Layout";
 import CveFilters from "@/components/CveFilters";
 import CveTable from "@/components/CveTable";
 import CvePagination from "@/components/CvePagination";
-
-const isValidDate = (value) => {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return false;
-  }
-
-  const date = new Date(`${value}T00:00:00.000Z`);
-
-  return (
-    !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
-  );
-};
 
 function CveListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,12 +26,6 @@ function CveListPage() {
   const [dateTo, setDateTo] = useState(to);
 
   const [dateError, setDateError] = useState("");
-
-  useEffect(() => {
-    setDateFrom(from);
-    setDateTo(to);
-    setDateError("");
-  }, [from, to]);
 
   const [cves, setCves] = useState([]);
   const [loading, setLoading] = useState(true);
