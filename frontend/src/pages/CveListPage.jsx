@@ -1,119 +1,16 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { getCves } from "@/services/cveService";
-
-import { isValidDate } from "@/utils/dateUtils";
-
 import Layout from "@/components/Layout";
 import CveFilters from "@/components/CveFilters";
 import CveTable from "@/components/CveTable";
 import CvePagination from "@/components/CvePagination";
 
+import useCveFilters from "@/hooks/useCveFilters";
+import useCves from "@/hooks/useCves";
+
 function CveListPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const { filters, filterProps, dateError, onPrevious, onNext } =
+    useCveFilters();
 
-  const page = Math.max(1, Number(searchParams.get("page")) || 1);
-  const cveId = searchParams.get("cveId") || "";
-  const severity = searchParams.get("severity") || "";
-  const productFilter = searchParams.get("product") || "";
-  const from = searchParams.get("from") || "";
-  const to = searchParams.get("to") || "";
-
-  const [search, setSearch] = useState(cveId);
-  const [product, setProduct] = useState(productFilter);
-
-  const [dateFrom, setDateFrom] = useState(from);
-  const [dateTo, setDateTo] = useState(to);
-
-  const [dateError, setDateError] = useState("");
-
-  const [cves, setCves] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [pagination, setPagination] = useState(null);
-
-  const updateFilters = (changes) => {
-    setSearchParams((previous) => {
-      const next = new URLSearchParams(previous);
-
-      Object.entries(changes).forEach(([key, value]) => {
-        if (value) {
-          next.set(key, String(value));
-        } else {
-          next.delete(key);
-        }
-      });
-
-      return next;
-    });
-  };
-
-  const handleSearch = () => {
-    if (
-      (dateFrom && !isValidDate(dateFrom)) ||
-      (dateTo && !isValidDate(dateTo))
-    ) {
-      setDateError("Introduce fechas válidas.");
-      return;
-    }
-
-    if (dateFrom && dateTo && dateFrom > dateTo) {
-      setDateError("La fecha inicial no puede ser posterior a la final.");
-      return;
-    }
-
-    setDateError("");
-
-    updateFilters({
-      cveId: search.trim(),
-      product: product.trim(),
-      from: dateFrom,
-      to: dateTo,
-      page: "",
-    });
-  };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-
-    const loadCves = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const result = await getCves(
-          page,
-          5,
-          cveId,
-          severity,
-          productFilter,
-          from,
-          to,
-        );
-
-        if (active) {
-          setCves(result.data);
-          setPagination(result.pagination);
-        }
-      } catch (err) {
-        if (active) {
-          setError(err.message);
-        }
-      } finally {
-        if (active) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadCves();
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [page, cveId, severity, productFilter, from, to]);
+  const { cves, pagination, loading, error } = useCves(filters);
 
   return (
     <Layout>
@@ -128,33 +25,7 @@ function CveListPage() {
           </p>
         </div>
 
-        <CveFilters
-          key={`${from}-${to}`}
-          search={search}
-          product={product}
-          severity={severity}
-          from={dateFrom}
-          to={dateTo}
-          onSearchChange={setSearch}
-          onProductChange={setProduct}
-          onSeverityChange={(value) =>
-            updateFilters({
-              severity: value === "ALL" ? "" : value,
-              page: "",
-            })
-          }
-          onFromChange={setDateFrom}
-          onToChange={setDateTo}
-          onSearch={handleSearch}
-          onClear={() => {
-            setSearch("");
-            setProduct("");
-            setDateFrom("");
-            setDateTo("");
-            setDateError("");
-            setSearchParams({});
-          }}
-        />
+        <CveFilters key={`${filters.from}-${filters.to}`} {...filterProps} />
 
         {dateError && (
           <p role="alert" className="text-sm text-destructive">
@@ -183,10 +54,10 @@ function CveListPage() {
               <CveTable cves={cves} />
 
               <CvePagination
-                page={page}
+                page={filters.page}
                 pagination={pagination}
-                onPrevious={() => updateFilters({ page: page - 1 })}
-                onNext={() => updateFilters({ page: page + 1 })}
+                onPrevious={onPrevious}
+                onNext={onNext}
               />
             </>
           )}
