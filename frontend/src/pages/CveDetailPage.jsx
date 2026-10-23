@@ -3,6 +3,10 @@ import { Link, useLocation, useParams } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 
 import Layout from "@/components/Layout";
+import CveMetrics from "@/components/CveMetrics";
+import CveAffectedProducts from "@/components/CveAffectedProducts";
+import CveReferences from "@/components/CveReferences";
+
 import { getCveById } from "@/services/cveService";
 
 function CveDetailPage() {
@@ -16,6 +20,8 @@ function CveDetailPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let active = true;
+
     const loadCve = async () => {
       try {
         setLoading(true);
@@ -23,15 +29,25 @@ function CveDetailPage() {
 
         const result = await getCveById(cveId);
 
-        setCve(result);
+        if (active) {
+          setCve(result);
+        }
       } catch (err) {
-        setError(err.message);
+        if (active) {
+          setError(err.message);
+        }
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
 
     loadCve();
+
+    return () => {
+      active = false;
+    };
   }, [cveId]);
 
   return (
@@ -82,91 +98,11 @@ function CveDetailPage() {
                 </p>
               </div>
 
-              <div>
-                <p className="text-sm text-muted-foreground">Métricas CVSS</p>
+              <CveMetrics metrics={cve.metrics} />
 
-                {cve.metrics?.length > 0 ? (
-                  <div className="space-y-2">
-                    {cve.metrics.map((metric, index) => (
-                      <div
-                        key={index}
-                        className="min-w-0 rounded-lg border bg-card p-4"
-                      >
-                        <p>Versión: {metric.version ?? "N/D"}</p>
-                        <p>Puntuación: {metric.score ?? "N/D"}</p>
-                        <p>Severidad: {metric.severity ?? "N/D"}</p>
-                        <p className="break-all">
-                          Vector: {metric.vector ?? "N/D"}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p>No hay métricas disponibles.</p>
-                )}
-              </div>
+              <CveAffectedProducts products={cve.products} />
 
-              <section className="space-y-2">
-                <h3 className="font-semibold">Productos afectados</h3>
-
-                {cve.products?.length > 0 ? (
-                  cve.products.map((product) => (
-                    <div
-                      key={product.id}
-                      className="min-w-0 rounded-lg border bg-card p-4"
-                    >
-                      <p>Proveedor: {product.vendor ?? "N/D"}</p>
-                      <p>Producto: {product.product ?? "N/D"}</p>
-                      <p>Paquete: {product.package_name ?? "N/D"}</p>
-
-                      {product.versions?.length > 0 && (
-                        <div className="mt-2">
-                          <p className="font-medium">Versiones afectadas</p>
-
-                          {product.versions.map((version, index) => (
-                            <p key={index} className="break-all">
-                              {version.version ?? "N/D"}
-                              {version.less_than &&
-                                ` - anterior a ${version.less_than}`}
-                              {version.less_than_or_equal &&
-                                ` - hasta ${version.less_than_or_equal}`}
-                            </p>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No hay productos disponibles.
-                  </p>
-                )}
-              </section>
-
-              <section className="space-y-2">
-                <h3 className="font-semibold">Referencias externas</h3>
-
-                {cve.references?.length > 0 ? (
-                  <ul className="space-y-2">
-                    {cve.references.map((reference, index) => (
-                      <li key={index} className="break-all">
-                        <a
-                          href={reference.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary underline"
-                        >
-                          {reference.url}
-                        </a>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    No hay referencias disponibles.
-                  </p>
-                )}
-              </section>
+              <CveReferences references={cve.references} />
             </div>
           </>
         )}
