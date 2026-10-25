@@ -1,5 +1,10 @@
 const cveService = require("../services/cveService");
 
+const {
+  runExclusiveSync,
+  SyncInProgressError,
+} = require("../services/syncCoordinator");
+
 const isValidDate = (value) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false;
@@ -22,7 +27,6 @@ const getCves = async (req, res) => {
       cveId: req.query.cveId,
     };
 
-    // Validar fechas de los filtros
     if (
       (filters.from && !isValidDate(filters.from)) ||
       (filters.to && !isValidDate(filters.to))
@@ -77,7 +81,6 @@ const syncCves = async (req, res) => {
       });
     }
 
-    // Limitar el rango máximo a 120 días
     const fromDate = new Date(`${from}T00:00:00.000Z`);
     const toDate = new Date(`${to}T00:00:00.000Z`);
 
@@ -90,7 +93,7 @@ const syncCves = async (req, res) => {
       });
     }
 
-    const result = await cveService.syncCves(from, to);
+    const result = await runExclusiveSync(() => cveService.syncCves(from, to));
 
     res.json({
       message: result.requestedNist
@@ -103,6 +106,12 @@ const syncCves = async (req, res) => {
       synchronizedRanges: result.synchronizedRanges,
     });
   } catch (error) {
+    if (error instanceof SyncInProgressError) {
+      return res.status(409).json({
+        message: error.message,
+      });
+    }
+
     console.error(error);
 
     res.status(500).json({

@@ -1,60 +1,78 @@
 const NIST_API_URL = "https://services.nvd.nist.gov/rest/json/cves/2.0";
 
 const RESULTS_PER_PAGE = 2000;
+const REQUEST_TIMEOUT_MS = 30000;
+const MAX_RETRIES = 3;
 
 const sleep = (ms) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
 };
 
-const fetchWithRetry = async (url, maxRetries = 3) => {
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+const fetchWithRetry = async (url) => {
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     const controller = new AbortController();
 
     const timeout = setTimeout(() => {
       controller.abort();
-    }, 15000);
+    }, REQUEST_TIMEOUT_MS);
+
+    let retryReason;
 
     try {
       const response = await fetch(url, {
         headers: {
-          apiKey: process.env.NVD_API_KEY,
+          ...(process.env.NVD_API_KEY
+            ? { apiKey: process.env.NVD_API_KEY }
+            : {}),
         },
         signal: controller.signal,
       });
 
       if (response.ok) {
-        const data = await response.json();
-        return data;
+        return await response.json();
       }
 
-      if (response.status !== 429) {
-        const message = response.headers.get("message");
+      const message = response.headers.get("message");
 
-        throw new Error(
-          `Error al consultar NIST: ${response.status} - ${message}`,
-        );
+      const errorMessage = `NIST respondió ${response.status}${
+        message ? `: ${message}` : ""
+      }`;
+
+      const retryable =
+        response.status === 408 ||
+        response.status === 429 ||
+        response.status >= 500;
+
+      if (!retryable) {
+        throw new Error(errorMessage);
       }
 
-      if (attempt === maxRetries) {
-        throw new Error(
-          `NIST sigue devolviendo 429 después de ${maxRetries} reintentos`,
-        );
-      }
+      retryReason = errorMessage;
     } catch (error) {
       if (error.name === "AbortError") {
-        throw new Error(
-          "La solicitud a NIST superó el tiempo máximo de espera",
-        );
+        retryReason = `La solicitud a NIST superó ${
+          REQUEST_TIMEOUT_MS / 1000
+        } segundos`;
+      } else if (error instanceof TypeError) {
+        retryReason = `Error de red al consultar NIST: ${error.message}`;
+      } else {
+        throw error;
       }
-
-      throw error;
     } finally {
       clearTimeout(timeout);
     }
 
+    if (attempt === MAX_RETRIES) {
+      throw new Error(
+        `${retryReason}. Se agotaron los ${MAX_RETRIES + 1} intentos`,
+      );
+    }
+
     const waitTime = (attempt + 1) * 5000;
 
-    console.log(`Error 429. Esperando ${waitTime / 1000} segundos...`);
+    console.warn(
+      `${retryReason}. Reintentando en ${waitTime / 1000} segundos...`,
+    );
 
     await sleep(waitTime);
   }
@@ -62,14 +80,15 @@ const fetchWithRetry = async (url, maxRetries = 3) => {
 
 const fetchCves = async (params) => {
   let startIndex = 0;
-  const vulnerabilities = [];
   let totalResults = 0;
+
+  const vulnerabilities = [];
 
   do {
     const searchParams = new URLSearchParams({
       ...params,
-      resultsPerPage: RESULTS_PER_PAGE.toString(),
-      startIndex: startIndex.toString(),
+      resultsPerPage: String(RESULTS_PER_PAGE),
+      startIndex: String(startIndex),
     });
 
     searchParams.append("noRejected", "");
