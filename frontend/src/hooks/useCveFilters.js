@@ -27,7 +27,6 @@ function useCveFilters() {
     to,
   };
 
-  // Identifica los filtros aplicados en la URL.
   const appliedKey = JSON.stringify([cveId, productFilter, from, to]);
 
   const initialDraft = {
@@ -69,6 +68,27 @@ function useCveFilters() {
   const handleSearch = () => {
     const { search, product, dateFrom, dateTo } = draft;
 
+    const trimmedCveId = search.trim();
+
+    // La búsqueda por CVE ID es independiente.
+    if (trimmedCveId) {
+      setStoredDraft({
+        key: JSON.stringify([trimmedCveId, "", "", ""]),
+        search: trimmedCveId,
+        product: "",
+        dateFrom: "",
+        dateTo: "",
+        dateError: "",
+      });
+
+      setSearchParams({
+        cveId: trimmedCveId,
+      });
+
+      return;
+    }
+
+    // Los filtros generales siguen siendo combinables.
     if (
       (dateFrom && !isValidDate(dateFrom)) ||
       (dateTo && !isValidDate(dateTo))
@@ -89,7 +109,7 @@ function useCveFilters() {
     updateDraft({ dateError: "" });
 
     updateFilters({
-      cveId: search.trim(),
+      cveId: "",
       product: product.trim(),
       from: dateFrom,
       to: dateTo,
@@ -118,16 +138,19 @@ function useCveFilters() {
     to: draft.dateTo,
 
     onSearchChange: (value) => updateDraft({ search: value }),
+
     onProductChange: (value) => updateDraft({ product: value }),
 
     onSeverityChange: (value) => {
       updateFilters({
+        cveId: "",
         severity: value === "ALL" ? "" : value,
         page: "",
       });
     },
 
     onFromChange: (value) => updateDraft({ dateFrom: value }),
+
     onToChange: (value) => updateDraft({ dateTo: value }),
 
     onSearch: handleSearch,
@@ -140,6 +163,7 @@ function useCveFilters() {
     dateError: draft.dateError,
 
     onPrevious: () => updateFilters({ page: page - 1 }),
+
     onNext: () => updateFilters({ page: page + 1 }),
   };
 }

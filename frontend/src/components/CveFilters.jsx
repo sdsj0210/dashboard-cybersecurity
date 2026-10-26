@@ -64,6 +64,15 @@ function CveFilters({
     onClear();
   };
 
+  const handleSearch = () => {
+    if (search.trim()) {
+      setFromText("");
+      setToText("");
+    }
+
+    onSearch();
+  };
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_1fr]">
@@ -113,7 +122,7 @@ function CveFilters({
           onCalendarChange={handleToCalendarChange}
         />
 
-        <Button onClick={onSearch}>Buscar</Button>
+        <Button onClick={handleSearch}>Buscar</Button>
 
         <Button variant="outline" onClick={handleClear}>
           Limpiar
