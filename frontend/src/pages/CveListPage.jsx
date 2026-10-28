@@ -1,3 +1,5 @@
+import { CircleAlert } from "lucide-react";
+
 import Layout from "@/components/Layout";
 import CveFilters from "@/components/CveFilters";
 import CveTable from "@/components/CveTable";
@@ -28,13 +30,29 @@ function CveListPage() {
         <CveFilters key={`${filters.from}-${filters.to}`} {...filterProps} />
 
         {dateError && (
-          <p role="alert" className="text-sm text-destructive">
-            {dateError}
-          </p>
+          <div
+            role="alert"
+            className="flex items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive"
+          >
+            <CircleAlert
+              aria-hidden="true"
+              className="mt-0.5 size-5 shrink-0"
+            />
+
+            <div>
+              <p className="font-semibold">Revisa el rango de fechas</p>
+
+              <p className="text-sm">{dateError}</p>
+            </div>
+          </div>
         )}
 
         <div>
-          {loading ? (
+          {dateError ? (
+            <div className="rounded-lg border bg-card p-8 text-center text-sm text-muted-foreground">
+              Corrige las fechas para mostrar los resultados.
+            </div>
+          ) : loading ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
               Cargando vulnerabilidades...
             </p>
