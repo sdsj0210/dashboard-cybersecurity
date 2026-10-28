@@ -2,7 +2,7 @@
 
 Aplicación web para consultar y monitorizar vulnerabilidades CVE obtenidas desde la API oficial NVD del NIST.
 
-El proyecto centraliza información de ciberseguridad en una solución propia, almacena los datos relevantes en MySQL y permite consultarlos de forma rápida mediante una API preparada para alimentar un dashboard.
+El proyecto centraliza información de ciberseguridad en una solución propia, almacena los datos relevantes en MySQL y permite consultarlos mediante una API y un dashboard web.
 
 ## Tecnologías utilizadas
 
@@ -17,6 +17,8 @@ El proyecto centraliza información de ciberseguridad en una solución propia, a
 - Git y GitHub
 - node-cron
 - nodemon
+- Vitest y React Testing Library
+- Node.js Test Runner
 
 ## Requisitos previos
 
@@ -28,14 +30,7 @@ Para ejecutar el proyecto en local es necesario tener instalado:
 - MySQL Server 8.4
 - MySQL Workbench o un cliente MySQL equivalente
 
-Versiones utilizadas durante el desarrollo:
-
-```text
-Node.js v24.20.0
-npm 11.19.0
-Git 2.55.0.windows.3
-MySQL Server 8.4
-```
+El desarrollo se ha realizado en Windows con Node.js 24, npm 11 y MySQL Server 8.4.
 
 ## Instalación y ejecución
 
@@ -74,7 +69,7 @@ Crear el archivo:
 backend/.env
 ```
 
-con los datos de conexión a MySQL, la API key de NVD y la configuración del entorno:
+Con los datos de conexión a MySQL, la API key de NVD y la configuración del entorno:
 
 ```env
 PORT=3000
@@ -190,7 +185,7 @@ GET /api/cves?from=2025-01-01&to=2025-01-31
 GET /api/cves?cveId=CVE-2025-0168
 ```
 
-Los filtros pueden combinarse.
+La API permite combinar los filtros. En el dashboard, la búsqueda por CVE ID se realiza de forma independiente del resto de filtros.
 
 ### Detalle de una vulnerabilidad
 
@@ -218,20 +213,17 @@ La integración soporta consultas históricas por rangos de fechas.
 
 Los periodos grandes se dividen automáticamente en bloques compatibles con los límites de NIST.
 
-Además, si NIST devuelve más resultados de los que caben en una sola respuesta, el backend realiza automáticamente las peticiones necesarias hasta recuperar todos los resultados.
+Si NIST devuelve más resultados de los que caben en una respuesta, el backend realiza automáticamente las peticiones necesarias para recuperar todos los resultados.
 
-Los CVE existentes no se duplican: si una vulnerabilidad ya está almacenada, sus datos se actualizan.
+Las CVEs existentes no se duplican: si una vulnerabilidad ya está almacenada, sus datos se actualizan.
 
 ## Automatización diaria
 
-El backend ejecuta diariamente una sincronización automática con NIST.
+El backend ejecuta una sincronización automática con NIST todos los días a las **02:00 (Atlantic/Canary)**.
 
-El proceso consulta:
+Al iniciar el backend se comprueba MySQL y se inicia una sincronización para recuperar periodos pendientes. El proceso utiliza bloques de hasta siete días y revisa los dos días anteriores al último periodo sincronizado.
 
-1. Vulnerabilidades publicadas recientemente.
-2. Vulnerabilidades modificadas recientemente.
-
-Los nuevos registros se almacenan en MySQL y los existentes se actualizan cuando NIST publica cambios.
+La sincronización procesa vulnerabilidades modificadas y publicadas. Un coordinador evita que se ejecuten dos sincronizaciones simultáneamente.
 
 ```text
 NIST
@@ -243,7 +235,7 @@ Backend
 MySQL
 ```
 
-La automatización se ejecuta mientras el backend se encuentra en funcionamiento.
+La automatización funciona mientras el backend permanece en ejecución.
 
 ## Hito 2.1 - Mejoras del Backend
 
@@ -251,7 +243,7 @@ Tras la revisión del Hito 2, se realizaron las siguientes mejoras:
 
 - Se corrigió la duplicación de filas del listado causada por la relación con los productos afectados. El filtro por producto utiliza `EXISTS` y los nombres se agrupan en `products_summary`.
 - Se añadió paginación a `GET /api/cves` mediante `page` y `limit`. La respuesta incluye `data` y `pagination`, con el número total de CVEs y de páginas.
-- Se configuró la API key de NVD mediante `NVD_API_KEY` en `backend/.env` y se añadieron hasta tres reintentos con espera ante respuestas HTTP `429`.
+- Se configuró la API key de NVD mediante `NVD_API_KEY` en `backend/.env` y se añadieron reintentos con espera ante respuestas HTTP `429`.
 
 Ejemplo de consulta paginada:
 
@@ -275,7 +267,7 @@ docs/HITO_2.1_MEJORAS_DEL_BACKEND.md
 
 Se desarrolló la interfaz web del dashboard utilizando React con Vite, JavaScript y JSX, Tailwind CSS v4 y shadcn/ui.
 
-El frontend se organizó mediante páginas, componentes reutilizables y una capa de servicios para realizar las peticiones HTTP al backend utilizando Fetch API.
+El frontend se organizó mediante páginas, componentes reutilizables, hooks y una capa de servicios para realizar las peticiones HTTP al backend utilizando Fetch API.
 
 ### Funcionalidades implementadas
 
@@ -284,9 +276,11 @@ El frontend se organizó mediante páginas, componentes reutilizables y una capa
 - Visualización de CVE ID, descripción, puntuación CVSS, severidad, fecha de publicación y productos afectados.
 - Contador total de vulnerabilidades encontradas.
 - Paginación de cinco registros por página.
-- Búsqueda por CVE ID y producto.
-- Filtros por severidad y rango de fechas.
-- Combinación y limpieza de filtros.
+- Búsqueda por CVE ID independiente de los demás filtros.
+- Búsqueda por producto y filtros combinables de severidad y fechas.
+- Conservación de filtros y paginación en la URL al navegar al detalle y volver.
+- Limpieza de filtros.
+- Validación de fechas con avisos visibles y ocultación de resultados anteriores ante errores.
 - Navegación mediante React Router.
 - Vista de detalle conectada con `GET /api/cves/:cveId`.
 - Visualización de métricas CVSS, productos, versiones afectadas y referencias externas.
@@ -336,16 +330,65 @@ Se incorporaron medidas adicionales de protección al backend:
 - Límite de 10 KB para los cuerpos JSON.
 - Validación de fechas y rango máximo de 120 días para la sincronización manual.
 - Deshabilitación de `POST /api/cves/sync` en producción, manteniendo la sincronización automática diaria con `node-cron`.
-- Timeout de 15 segundos por intento de solicitud a NIST.
+- Timeout de 30 segundos por intento de solicitud a NIST.
+- Hasta tres reintentos ante respuestas HTTP `408`, `429`, errores `5xx`, errores de red y expiración del tiempo de espera.
+- Bloqueo de sincronizaciones simultáneas, con respuesta `409` para una petición manual concurrente.
 - Auditoría y actualización de dependencias con `npm audit fix`.
 
-La comprobación de las dependencias de producción mediante `npm audit --omit=dev` devolvió `0 vulnerabilities` tras aplicar las correcciones.
-
-La documentación detallada se encuentra en:
+La documentación de las medidas de seguridad se encuentra en:
 
 ```text
 docs/EXTRA_SEGURIDAD_BACKEND.md
 ```
+
+## Hito 4 - Pruebas y robustez
+
+Se realizaron pruebas automatizadas del backend y el frontend y se revisaron los comportamientos del dashboard.
+
+### Pruebas del backend
+
+Se utilizó el ejecutor de pruebas integrado en Node.js para comprobar controladores, servicios, repositorios, rutas, sincronización automática, conexión MySQL y manejo de errores mediante simulaciones.
+
+Desde la carpeta `backend`:
+
+```powershell
+npm test
+```
+
+Para consultar la cobertura:
+
+```powershell
+node --test --experimental-test-coverage
+```
+
+Resultados obtenidos:
+
+- 88 pruebas superadas.
+- Cobertura de líneas: 99,44 %.
+- Cobertura de ramas: 90,23 %.
+- Cobertura de funciones: 100 %.
+
+### Pruebas del frontend
+
+Se utilizaron Vitest, React Testing Library y jsdom para probar las utilidades de fechas, filtros, servicios HTTP, hooks, componentes y páginas mediante datos simulados.
+
+Desde la carpeta `frontend`:
+
+```powershell
+npm test
+npm run lint
+npm run build
+npm audit
+```
+
+Resultados obtenidos:
+
+- 69 pruebas superadas.
+- Análisis ESLint correcto.
+- Compilación de producción correcta.
+- Auditoría npm sin vulnerabilidades detectadas.
+
+También se comprobaron manualmente la búsqueda por CVE ID, los filtros de severidad, producto y fechas, la paginación y la validación visual de fechas incorrectas.
 
 ## Estructura actual del backend
 
@@ -354,21 +397,33 @@ backend/
 ├── server.js
 ├── package.json
 ├── package-lock.json
-└── src/
-    ├── app.js
-    ├── config/
-    │   └── database.js
-    ├── controllers/
-    │   └── cveController.js
-    ├── jobs/
-    │   └── dailySync.js
-    ├── repositories/
-    │   └── cveRepository.js
-    ├── routes/
-    │   └── cveRoutes.js
-    └── services/
-        ├── cveService.js
-        └── nistService.js
+├── src/
+│   ├── app.js
+│   ├── config/
+│   │   └── database.js
+│   ├── controllers/
+│   │   └── cveController.js
+│   ├── jobs/
+│   │   └── dailySync.js
+│   ├── repositories/
+│   │   └── cveRepository.js
+│   ├── routes/
+│   │   └── cveRoutes.js
+│   └── services/
+│       ├── cveService.js
+│       ├── nistService.js
+│       └── syncCoordinator.js
+└── test/
+    ├── app.test.js
+    ├── cveController.test.js
+    ├── cveRepository.test.js
+    ├── cveRoutes.test.js
+    ├── cveService.test.js
+    ├── dailySync.test.js
+    ├── database.test.js
+    ├── nistService.test.js
+    ├── server.test.js
+    └── syncCoordinator.test.js
 ```
 
 ## Estructura actual del frontend
@@ -377,26 +432,48 @@ backend/
 frontend/
 ├── index.html
 ├── package.json
+├── package-lock.json
 ├── vite.config.js
-└── src/
-    ├── App.jsx
-    ├── main.jsx
-    ├── index.css
-    ├── components/
-    │   ├── Layout.jsx
-    │   ├── CveFilters.jsx
-    │   ├── CveTable.jsx
-    │   ├── CvePagination.jsx
-    │   └── ui/
-    │       ├── button.jsx
-    │       ├── input.jsx
-    │       ├── select.jsx
-    │       └── table.jsx
-    ├── pages/
-    │   ├── CveListPage.jsx
-    │   └── CveDetailPage.jsx
-    ├── services/
-    │   └── cveService.js
-    └── lib/
-        └── utils.js
+├── vitest.config.js
+├── src/
+│   ├── App.jsx
+│   ├── main.jsx
+│   ├── index.css
+│   ├── components/
+│   │   ├── Layout.jsx
+│   │   ├── CveFilters.jsx
+│   │   ├── CveDateField.jsx
+│   │   ├── CveTable.jsx
+│   │   ├── CvePagination.jsx
+│   │   ├── CveMetrics.jsx
+│   │   ├── CveAffectedProducts.jsx
+│   │   ├── CveReferences.jsx
+│   │   └── ui/
+│   │       ├── button.jsx
+│   │       ├── input.jsx
+│   │       ├── select.jsx
+│   │       └── table.jsx
+│   ├── hooks/
+│   │   ├── useCveFilters.js
+│   │   └── useCves.js
+│   ├── pages/
+│   │   ├── CveListPage.jsx
+│   │   └── CveDetailPage.jsx
+│   ├── services/
+│   │   └── cveService.js
+│   ├── utils/
+│   │   └── dateUtils.js
+│   └── lib/
+│       └── utils.js
+└── test/
+    ├── setup.js
+    ├── cveService.test.js
+    ├── dateUtils.test.js
+    ├── useCveFilters.test.jsx
+    ├── useCves.test.jsx
+    ├── CveFilters.test.jsx
+    ├── CvePagination.test.jsx
+    ├── CveTable.test.jsx
+    ├── CveDetailPage.test.jsx
+    └── CveListPage.test.jsx
 ```
